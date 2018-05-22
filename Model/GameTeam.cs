@@ -18,9 +18,7 @@ namespace Model
         [Range(minimum:0, maximum:1000)]
         public int Points { get; set; }
 
-        public Boolean IsHomeTeam { get; set; }
+        public Boolean ResultConfirmed { get; set; }
 
-        public long GameResultId { get; set; }
-        public GameResult GameResult { get; set; }
     }
 }

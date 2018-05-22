@@ -40,10 +40,10 @@ namespace WebApp.Controllers.api
         
         // PUT: api/GameResults/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> Put(long id, [FromBody]GameResultActionDto gameResult)
+        public async Task<IActionResult> Put(long id, [FromBody]GameActionDto game)
         {
             if (!ModelState.IsValid) return BadRequest();
-            var result = await _resultService.UpdateResult(id, gameResult);
+            var result = await _resultService.UpdateResult(id, game);
             return Ok(result);
         }
         

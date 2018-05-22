@@ -9,6 +9,6 @@ namespace BL.Factories
     public interface IGameFactory
     {
         Game Create(GameDTO game);
-        GameDTO Create(Game game, CourtDTO court, UserDTO referee, GameType gameType);
+        GameDTO Create(Game game, CourtDTO court, ApplicationUser referee, GameType gameType);
     }
 }

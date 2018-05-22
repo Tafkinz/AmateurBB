@@ -15,7 +15,6 @@ namespace DAL.App.Interfaces
         IRepository<ContactType> ContactTypes { get; }
         IRepository<Court> Courts { get; }
         IRepository<Game> Games { get; }
-        IRepository<GameResult> GameResults { get; }
         IRepository<GameTeam> GameTeams { get; }
         IRepository<GameType> GameTypes { get; }
         IRepository<PersonType> PersonTypes { get; }

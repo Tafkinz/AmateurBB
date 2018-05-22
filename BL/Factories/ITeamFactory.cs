@@ -9,7 +9,7 @@ namespace BL.Factories
 {
     public interface ITeamFactory
     {
-        TeamDTO Create(Team t, string manager, List<GameResultDTO> gameResult, StandingDTO standing);
+        TeamDTO Create(Team t, string manager, List<GameDTO> gameResult, StandingDTO standing);
         Team Create(TeamDTO t);
         TeamPersonDTO CreateFromTeamPersons(TeamPerson p);
 

@@ -13,8 +13,8 @@ namespace BL.Services
 
         StandingDTO GetStandingsByTeamId(long teamId);
 
-        GameDTO CreateGame(GameDTO game);
-        Task<List<GameResultActionDto>> GetUserPendingResults();
-        Task<GameResultActionDto> UpdateResult(long id, GameResultActionDto gameResult);
+        Task<GameDTO> CreateGame(GameDTO gameDto);
+        Task<List<GameActionDto>> GetUserPendingResults();
+        Task<GameActionDto> UpdateResult(long id, GameActionDto game);
     }
 }

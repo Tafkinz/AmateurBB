@@ -35,10 +35,10 @@ namespace WebApp.Controllers.api
         
         // POST: api/Game
         [HttpPost]
-        public IActionResult Post([FromBody]GameDTO game)
+        public async Task<IActionResult> Post([FromBody]GameDTO game)
         {
             if (!ModelState.IsValid) return BadRequest();
-            var result = _resultService.CreateGame(game);
+            var result = await _resultService.CreateGame(game);
             return CreatedAtAction("Get", new { id = result.GameId }, result);
         }
         

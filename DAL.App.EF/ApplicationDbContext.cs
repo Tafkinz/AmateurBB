@@ -15,7 +15,6 @@ namespace DAL.App.EF
         public DbSet<ContactType> ContactTypes { get; set; }
         public DbSet<Court> Courts { get; set; }
         public DbSet<Game> Games { get; set; }
-        public DbSet<GameResult> GameResults { get; set; }
         public DbSet<GameTeam> GameTeams { get; set; }
         public DbSet<GameType> GameTypes { get; set; }
         public DbSet<Team> Teams { get; set; }

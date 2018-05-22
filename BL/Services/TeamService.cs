@@ -54,7 +54,7 @@ namespace BL.Services
 
             List<long> games = new List<long>();
             team.GameTeams.ForEach(p => games.Add(p.GameId));
-            List<GameResultDTO> gameResults = new List<GameResultDTO>();
+            List<GameDTO> gameResults = new List<GameDTO>();
 
             if (games.Count != 0)
             {
@@ -150,27 +150,30 @@ namespace BL.Services
             _uow.TeamPersons.Update(teamPerson);
         }
 
-        private GameResultDTO GetGameResult(long gameId)
+        private GameDTO GetGameResult(long gameId)
         {
-            Game game = _uow.Games.GetAll().Where(p => p.GameId == gameId).Single();
+            Game game = _uow.Games.GetAll().Single(p => p.GameId == gameId);
             List<GameTeam> gameTeams = game.GameTeams;
             var referee = game.Referee.DisplayName;
 
-            GameTeam homeTeam = gameTeams.Where(p => p.IsHomeTeam).Single();
+            GameTeam homeTeam = gameTeams[0];
             int homeTeamPoints = homeTeam.Points;
             string homeTeamName = homeTeam.Team.FullTeamName;
 
-            GameTeam awayTeam = gameTeams.Where(p => !p.IsHomeTeam).Single();
+            GameTeam awayTeam = gameTeams[1];
             int awayTeamPoints = awayTeam.Points;
             string awayTeamName = awayTeam.Team.FullTeamName;
 
-            return new GameResultDTO()
+            return new GameDTO()
             {
-                AwayTeam = awayTeamName,
+                AwayTeamId = awayTeam.TeamId,
+                AwayTeamName = awayTeamName,
                 AwayTeamPoints = awayTeamPoints,
                 Court = _courtFactory.Create(game.Court),
-                HomeTeam = homeTeamName,
+                HomeTeamId = homeTeam.TeamId,
+                HomeTeamName = homeTeamName,
                 HomeTeamPoints = homeTeamPoints,
+                RefereeId = game.Referee.Id,
                 Referee = referee
             };
         }

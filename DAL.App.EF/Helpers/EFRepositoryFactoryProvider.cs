@@ -36,7 +36,6 @@ namespace DAL.App.EF.Helpers
                 { typeof(IContactRepository), (dataContext) =>  new ContactRepository(dataContext as ApplicationDbContext)},
                 { typeof(IContactTypeRepository), (dataContext) =>  new ContactTypeRepository(dataContext as ApplicationDbContext)},
                 { typeof(ICourtRepository), (dataContext) =>  new CourtRepository(dataContext as ApplicationDbContext)},
-                { typeof(IGameResultRepository), (dataContext) =>  new GameResultRepository(dataContext as ApplicationDbContext)},
                 { typeof(IGameTeamRepository), (dataContext) =>  new GameTeamRepository(dataContext as ApplicationDbContext)},
                 { typeof(IGameTypeRepository), (dataContext) =>  new GameTypeRepository(dataContext as ApplicationDbContext)},
                 { typeof(IPersonTypeRepository), (dataContext) =>  new PersonTypeRepository(dataContext as ApplicationDbContext)},

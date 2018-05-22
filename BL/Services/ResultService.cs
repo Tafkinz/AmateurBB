@@ -57,87 +57,69 @@ namespace BL.Services
             return _standingFactory.Create(standing);
         }
 
-        public GameDTO CreateGame(GameDTO game)
+        public async Task<GameDTO> CreateGame(GameDTO gameDto)
         {
-            Game actualGame = _gameFactory.Create(game);
-            actualGame = _uow.Games.Add(actualGame);
+            Game game = _gameFactory.Create(gameDto);
+            game = _uow.Games.Add(game);
 
-            GameResult gameResult = new GameResult();
-            gameResult = _uow.GameResults.Add(gameResult);
-            GameTeam gameTeamAway = BuildGameTeam(actualGame, gameResult.GameResultId, game.AwayTeamId, false);
-            GameTeam gameTeamHome = BuildGameTeam(actualGame, gameResult.GameResultId, game.AwayTeamId, false);
+            GameTeam gameTeam1 = BuildGameTeam(game, gameDto.AwayTeamId);
+            GameTeam gameTeam2 = BuildGameTeam(game, gameDto.HomeTeamId);
 
-            _uow.GameTeams.Add(gameTeamAway);
-            _uow.GameTeams.Add(gameTeamHome);
+            await _uow.GameTeams.AddAsync(gameTeam1);
+            await _uow.GameTeams.AddAsync(gameTeam2);
 
-            return _gameFactory.Create(actualGame, _courtFactory.Create(actualGame.Court),
-                _userFactory.Create(actualGame.Referee), actualGame.GameType);
+            game = _uow.Games.Find(game.GameId);
+            return _gameFactory.Create(game, _courtFactory.Create(game.Court),
+                game.Referee, game.GameType);
         }
 
-        public async Task<List<GameResultActionDto>> GetUserPendingResults()
+        public async Task<List<GameActionDto>> GetUserPendingResults()
         {
             ApplicationUser user = await GetCurrentUser();
             if (!user.PersonType.PersonTypeName.Equals("manager")) throw new HttpRequestException("Only managers can view and accept results");
 
-            Team team = _uow.TeamPersons.GetAll().Where(p => p.ApplicationUserId == user.Id).Single().Team;
+            Team team = _uow.TeamPersons.GetAll().Single(p => p.ApplicationUserId == user.Id).Team;
             if (team == null) return null;
-            List<GameTeam> homeGames = _uow.GameTeams.GetAll().Where(p => p.TeamId == team.TeamId).Where(p=> p.IsHomeTeam).Where(p => p.GameResult.HomeTeamConfirmed != true && p.GameResult.ConfirmedTs == null).ToList();
-            List<GameTeam> awayGames = _uow.GameTeams.GetAll().Where(p => p.TeamId == team.TeamId).Where(p => !p.IsHomeTeam).Where(p => p.GameResult.AwayTeamConfirmed != true && p.GameResult.ConfirmedTs == null).ToList();
+            List<GameTeam> unapprovedGames = _uow.GameTeams.GetAll().Where(p => p.TeamId == team.TeamId).Where(p => p.ResultConfirmed != true).ToList();
 
-            List<GameResultActionDto> gameResults = new List<GameResultActionDto>();
-            foreach (GameTeam game in homeGames)
+            List<GameActionDto> gameResults = new List<GameActionDto>();
+            foreach (GameTeam game in unapprovedGames)
             {
-                GameTeam awayTeam = game.GameResult.GameTeams.Where(p => !p.IsHomeTeam).Single();
+                GameTeam oppisingTeam = game.Game.GameTeams.Single(p => !p.Equals(game));
                 var referee = game.Game.Referee;
                 var court = game.Game.Court;
-                gameResults.Add(_gameResultFactory.GetGameResultActionDto(game, awayTeam, referee, _courtFactory.Create(court)));
+                gameResults.Add(_gameResultFactory.GetGameResultActionDto(game, oppisingTeam, referee, _courtFactory.Create(court)));
             }
 
-            foreach (GameTeam game in awayGames)
-            {
-                GameTeam homeTeam = game.GameResult.GameTeams.Where(p => p.IsHomeTeam).Single();
-                var referee = game.Game.Referee;
-                var court = game.Game.Court;
-                gameResults.Add(_gameResultFactory.GetGameResultActionDto(homeTeam, game, referee, _courtFactory.Create(court)));
-            }
             return gameResults;
         }
 
-        public async Task<GameResultActionDto> UpdateResult(long id, GameResultActionDto gameResult)
+        public async Task<GameActionDto> UpdateResult(long id, GameActionDto gameDto)
         {
             ApplicationUser user = await GetCurrentUser();
 
-            GameResult result = _uow.GameResults.Find(id);
-            if (result == null) throw new EntryPointNotFoundException();
+            Game game = _uow.Games.Find(id);
+            if (game == null) throw new EntryPointNotFoundException();
             
-            var gameTeams = _uow.GameTeams.GetAll().Where(p => p.GameResult == result);
+            var gameTeams = _uow.GameTeams.GetAll().Where(p => p.GameId == game.GameId);
             GameTeam userTeam = gameTeams.Single(p => p.Team.TeamPersons.Exists(a => a.ApplicationUserId == user.Id));
-            if (userTeam.IsHomeTeam)
+
+            userTeam.ResultConfirmed = gameDto.Accept;
+            userTeam = _uow.GameTeams.Update(userTeam);
+            if (ResultUtil.IsGameConfirmable(game))
             {
-                result.HomeTeamConfirmed = gameResult.Accept;
-            }
-            else
-            {
-                result.AwayTeamConfirmed = gameResult.Accept;
+                AcceptGameAndChangeStandings(game);
             }
 
-            result = _uow.GameResults.Update(result);
-            if (ResultUtil.IsGameConfirmable(result))
-            {
-                AcceptGameAndChangeStandings(result);
-            }
-
-            return gameResult;
+            return gameDto;
         }
 
-        private GameTeam BuildGameTeam(Game game, long gameResultId, long teamId, Boolean isHome)
+        private GameTeam BuildGameTeam(Game game, long teamId)
         {
             return new GameTeam()
             {
                 GameId = game.GameId,
-                TeamId = teamId,
-                GameResultId = gameResultId,
-                IsHomeTeam = isHome
+                TeamId = teamId
             };
         }
 
@@ -146,32 +128,42 @@ namespace BL.Services
             return await _userManager.GetUserAsync(ClaimsPrincipal.Current);
         }
 
-        private void AcceptGameAndChangeStandings(GameResult result)
+        private void AcceptGameAndChangeStandings(Game result)
         {
             result.ConfirmedTs = DateTime.Now;
-            _uow.GameResults.Update(result);
+            _uow.Games.Update(result);
 
-            var awayTeam = result.GameTeams.Single(p => !p.IsHomeTeam);
-            var homeTeam = result.GameTeams.Single(p => p.IsHomeTeam);
+            var team = result.GameTeams[0];
+            var opponent = result.GameTeams[1];
 
-            Boolean homeTeamWin = homeTeam.Points > awayTeam.Points;
-            Standings homeTeamStandings = _uow.Standings.GetAll().Single(p => p.TeamId == homeTeam.TeamId);
-            homeTeamStandings = ModifyStandingsByResult(homeTeamStandings, homeTeamWin);
-            _uow.Standings.Update(homeTeamStandings);
+            Boolean teamWon = team.Points > opponent.Points;
+            UpdateGameTeam(team);
+            UpdateGameTeam(opponent);
 
-            Standings awayTeamStandings = _uow.Standings.GetAll().Single(p => p.TeamId == awayTeam.TeamId);
-            awayTeamStandings = ModifyStandingsByResult(awayTeamStandings, !homeTeamWin);
-            _uow.Standings.Update(awayTeamStandings);
+            Standings homeTeamStandings = _uow.Standings.GetAll().Single(p => p.TeamId == team.TeamId);
+             ModifyStandingsByResult(homeTeamStandings, teamWon);
+
+            Standings awayTeamStandings = _uow.Standings.GetAll().Single(p => p.TeamId == opponent.TeamId);
+            ModifyStandingsByResult(awayTeamStandings, !teamWon);
         }
 
-        private Standings ModifyStandingsByResult(Standings standing, Boolean won)
+        private void UpdateGameTeam(GameTeam team)
+        {
+            if (team.ResultConfirmed != true)
+            {
+                team.ResultConfirmed = true;
+                _uow.GameTeams.Update(team);
+            }
+        }
+
+        private void ModifyStandingsByResult(Standings standing, Boolean won)
         {
             standing.GamesPlayed += 1;
             standing.Losses = won ? standing.Losses : standing.Losses + 1;
             standing.Wins = won ? standing.Wins + 1 : standing.Wins;
             standing.Points = won ? standing.Points + 3 : standing.Points;
 
-            return standing;
+            _uow.Standings.Update(standing);
         }
     }
 }

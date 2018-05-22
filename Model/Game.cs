@@ -22,5 +22,9 @@ namespace Model
         public DateTime GameTs { get; set; }
 
         public List<GameTeam> GameTeams { get; set; } = new List<GameTeam>();
+
+        public Boolean RefereeConfirmed { get; set; }
+
+        public DateTime ConfirmedTs { get; set; }
     }
 }

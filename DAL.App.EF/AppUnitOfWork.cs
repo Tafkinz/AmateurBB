@@ -50,9 +50,6 @@ namespace DAL.App.EF
         public IRepository<Game> Games =>
             GetEntityRepository<Game>();
 
-        public IRepository<GameResult> GameResults =>
-            GetEntityRepository<GameResult>();
-
         public IRepository<GameType> GameTypes =>
             GetEntityRepository<GameType>();
 

@@ -87,10 +87,10 @@ namespace WebApp
             services.AddScoped<IAppUnitOfWork, AppUnitOfWork>();
             services.AddScoped<IDataContext, ApplicationDbContext>();
             services.AddScoped<ITeamService, TeamService>();
+            services.AddScoped<IResultService, ResultService>();
             services.AddScoped<ITeamFactory, TeamFactory>();
             services.AddScoped<ICourtFactory, CourtFactory>();
             services.AddScoped<IStandingFactory, StandingFactory>();
-            services.AddScoped<IGameResultFactory, GameResultFactory>();
 
             //XML and JSON
             services.AddMvc(options => { options.RespectBrowserAcceptHeader = true; });

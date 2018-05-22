@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 using Model;
 
@@ -9,6 +10,7 @@ namespace Model
     {
         public long ContactId { get; set; }
 
+        [MaxLength(256)]
         public string ContactValue { get; set; }
 
         public string ApplicationUserId { get; set; }

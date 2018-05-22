@@ -14,23 +14,29 @@ namespace BL.Factories
             return new Game()
             {
                 GameTypeId =  game.GameType.GameTypeId,
-                ApplicationUserId = game.Referee.UserId,
+                ApplicationUserId = game.RefereeId,
                 CourtId = game.Court.CourtId,
                 GameTs = game.GameTs
             };
         }
 
-        public GameDTO Create(Game game, CourtDTO court, UserDTO referee, GameType gameType)
+        public GameDTO Create(Game game, CourtDTO court, ApplicationUser referee, GameType gameType)
         {
             return new GameDTO()
             {
-                AwayTeamId = game.GameTeams.Where(p => !p.IsHomeTeam).Single().TeamId,
+                HomeTeamId = game.GameTeams[0].TeamId,
+                HomeTeamName = game.GameTeams[0].Team.FullTeamName,
+                HomeTeamPoints = game.GameTeams[0].Points,
                 Court = court,
                 GameId = game.GameId,
                 GameTs = game.GameTs,
                 GameType = gameType,
-                HomeTeamId = game.GameTeams.Where(p => p.IsHomeTeam).Single().TeamId,
-                Referee = referee
+                AwayTeamId = game.GameTeams[1].TeamId,
+                AwayTeamPoints = game.GameTeams[1].Points,
+                AwayTeamName = game.GameTeams[1].Team.FullTeamName,
+                Referee = referee.DisplayName,
+                RefereeId = referee.Id
+
             };
         }
     }

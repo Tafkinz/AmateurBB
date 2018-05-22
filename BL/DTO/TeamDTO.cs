@@ -18,7 +18,7 @@ namespace BL.DTO
 
         public string Manager { get; set; }
 
-        public List<GameResultDTO> GameResults { get; set; }
+        public List<GameDTO> GameResults { get; set; }
 
         public StandingDTO Standings { get; set; }
     }
