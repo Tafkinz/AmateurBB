@@ -36,5 +36,23 @@ namespace BL.Factories
                 PersonTypeId = user.PersonType.PersonTypeId
             };
         }
+
+        public PersonTypeDTO Create(PersonType type)
+        {
+            return new PersonTypeDTO()
+            {
+                PersonTypeId = type.PersonTypeId,
+                PersonTypeName = type.PersonTypeName
+            };
+        }
+
+        public PersonType Create(PersonTypeDTO dto)
+        {
+            return new PersonType()
+            {
+                PersonTypeId = dto.PersonTypeId,
+                PersonTypeName = dto.PersonTypeName
+            };
+        }
     }
 }

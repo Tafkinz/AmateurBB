@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BL.DTO;
+using BL.Services;
 using DAL.App.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,42 +14,67 @@ namespace WebApp.Controllers.api
     [Route("api/Courts")]
     public class CourtsController : Controller
     {
-        private readonly IAppUnitOfWork _uow;
+        private readonly ICourtService _courtService;
 
-        public CourtsController(IAppUnitOfWork uow)
+        public CourtsController(ICourtService courtService)
         {
-            _uow = uow;
+            _courtService = courtService;
         }
         // GET: api/Courts
+        /// <summary>
+        /// Get all courts as list
+        /// </summary>
         [HttpGet]
-        public IEnumerable<string> Get()
+        [ProducesResponseType(typeof(List<CourtDTO>), 200)]
+        public IActionResult GetAll()
         {
-            return new string[] { "value1", "value2" };
+            return Ok(_courtService.GetAllCourts());
         }
 
         // GET: api/Courts/5
+        /// <summary>
+        /// Get a single court by ID
+        /// </summary>
         [HttpGet("{id}", Name = "GetCourtById")]
-        public string Get(int id)
+        [ProducesResponseType(typeof(CourtDTO), 200)]
+        [ProducesResponseType(404)]
+        public IActionResult GetById(long id)
         {
-            return "value";
+            var result = _courtService.GetCourtById(id);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
-        
+
         // POST: api/Courts
+        /// <summary>
+        /// Add a new court
+        /// </summary>
         [HttpPost]
-        public void Post([FromBody]string value)
+        [ProducesResponseType(typeof(CourtDTO), 201)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(400)]
+        [Authorize]
+        public IActionResult Post([FromBody]CourtDTO dto)
         {
+            if (!ModelState.IsValid) return BadRequest();
+            var result = _courtService.AddCourt(dto);
+            return CreatedAtAction("GetById", new { id = result.CourtId }, result);
         }
-        
+
         // PUT: api/Courts/5
+        /// <summary>
+        /// Update court by ID with updated values
+        /// </summary>
+        [Authorize]
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
+        [ProducesResponseType(typeof(CourtDTO), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public IActionResult Put(long id, [FromBody]CourtDTO dto)
         {
-        }
-        
-        // DELETE: api/ApiWithActions/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            var result = _courtService.UpdateCourt(id, dto);
+            if (result == null) return BadRequest();
+            return Ok(result);
         }
     }
 }

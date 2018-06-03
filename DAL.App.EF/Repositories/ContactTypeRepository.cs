@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using DAL.App.Interfaces.Repositories;
 using DAL.EF.Repositories;
@@ -12,6 +13,11 @@ namespace DAL.App.EF.Repositories
     {
         public ContactTypeRepository(DbContext dbContext) : base(dbContext)
         {
+        }
+
+        public bool Exists(string contactTypeName)
+        {
+            return RepositoryDbSet.Any(p => p.ContactTypeName == contactTypeName);
         }
     }
 }

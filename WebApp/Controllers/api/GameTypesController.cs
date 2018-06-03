@@ -2,44 +2,80 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BL.DTO;
+using BL.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Model;
 
 namespace WebApp.Controllers.api
 {
     [Route("api/GameTypes")]
     public class GameTypesController : Controller
     {
-        // GET: api/GameTypes
-        [HttpGet]
-        public IEnumerable<string> Get()
+        private readonly IGameService _gameService;
+
+        public GameTypesController(IGameService gameService)
         {
-            return new string[] { "value1", "value2" };
+            _gameService = gameService;
+        }
+        // GET: api/GameTypes
+        /// <summary>
+        /// Get all game types as list
+        /// </summary>
+        [HttpGet]
+        [ProducesResponseType(typeof(List<GameTypeDTO>), 200)]
+        public IActionResult Get()
+        {
+            return Ok(_gameService.GetAllGameTypes());
         }
 
-        // GET: api/GameTypes/5
+        /// <summary>
+        /// Get a game type by ID
+        /// </summary>
         [HttpGet("{id}", Name = "GetGameTypeById")]
-        public string Get(int id)
+        [ProducesResponseType(typeof(GameTypeDTO), 200)]
+        [ProducesResponseType(404)]
+        public IActionResult GetGameTypeById(long id)
         {
-            return "value";
+            var result = _gameService.GetAllGameTypes().Single(p => p.GameTypeId == id);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
-        
+
         // POST: api/GameTypes
+        /// <summary>
+        /// Create a new game type with value
+        /// </summary>
         [HttpPost]
-        public void Post([FromBody]string value)
+        [ProducesResponseType(typeof(GameTypeDTO), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [Authorize]
+        public IActionResult Post([FromBody]GameTypeDTO value)
         {
+            if (!ModelState.IsValid) return BadRequest();
+
+            var result =_gameService.AddGameType(value);
+            return CreatedAtAction("GetGameTypeById", new { id = result.GameTypeId }, result);
         }
-        
+
         // PUT: api/GameTypes/5
+        /// <summary>
+        /// Update game type's name by ID
+        /// </summary>
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
+        [ProducesResponseType(typeof(GameTypeDTO), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
+        [Authorize]
+        public IActionResult Put(long id, [FromBody]GameTypeDTO value)
         {
-        }
-        
-        // DELETE: api/ApiWithActions/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            var result = _gameService.UpdateGameTypeById(id, value);
+            if (result == null) return NotFound();
+
+            return Ok(result);
         }
     }
 }

@@ -39,5 +39,23 @@ namespace BL.Factories
 
             return contactsDto;
         }
+
+        public ContactTypeDTO Create(ContactType type)
+        {
+            return new ContactTypeDTO()
+            {
+                ContactTypeId = type.ContactTypeId,
+                ContactTypeName = type.ContactTypeName
+            };
+        }
+
+        public ContactType Create(ContactTypeDTO dto)
+        {
+            return new ContactType()
+            {
+                ContactTypeId = dto.ContactTypeId,
+                ContactTypeName = dto.ContactTypeName
+            };
+        }
     }
 }

@@ -11,5 +11,9 @@ namespace BL.Factories
         ContactsDTO Create(Contact contact);
         Contact Create(ContactsDTO contactsDto);
         List<ContactsDTO> Create(List<Contact> contacts);
+
+        ContactTypeDTO Create(ContactType type);
+
+        ContactType Create(ContactTypeDTO dto);
     }
 }

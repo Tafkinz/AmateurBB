@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using DAL.App.Interfaces.Repositories;
 using DAL.EF.Repositories;
@@ -12,6 +13,14 @@ namespace DAL.App.EF.Repositories
     {
         public GameTeamRepository(DbContext dbContext) : base(dbContext)
         {
+        }
+
+        public List<GameTeam> GetGameTeamsByGameId(long gameId)
+        {
+            return RepositoryDbSet
+                .Include(p => p.Team)
+                .Include(p => p.Game)
+                .Where(p => p.GameId == gameId).ToList();
         }
     }
 }

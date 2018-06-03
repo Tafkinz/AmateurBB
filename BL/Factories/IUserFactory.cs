@@ -10,5 +10,9 @@ namespace BL.Factories
     {
         UserDTO Create(ApplicationUser user);
         ApplicationUser Create(UserDTO user);
+
+        PersonTypeDTO Create(PersonType type);
+
+        PersonType Create(PersonTypeDTO dto);
     }
 }

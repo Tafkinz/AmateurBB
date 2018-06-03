@@ -22,6 +22,9 @@ using Newtonsoft.Json;
 using WebApp.Data;
 using WebApp.Models;
 using WebApp.Services;
+using Swashbuckle.AspNetCore.Swagger;
+using System.Reflection;
+using System.IO;
 
 namespace WebApp
 {
@@ -66,6 +69,29 @@ namespace WebApp
                 options.User.RequireUniqueEmail = true;
             });
 
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Info
+                {
+                    Version = "v1",
+                    Title = "BasketBall API",
+                    Description = "API for managing amateur basketball league games and results",
+                    TermsOfService = "None",
+                    Contact = new Swashbuckle.AspNetCore.Swagger.Contact
+                    {
+                        Name = "Taavi Kivimaa",
+                        Email = "taavi.kivimaa@snowhound.eu"                    },
+                    License = new License
+                    {
+                        Name = "Use as you wish",
+                        Url = "https://www.neti.ee"
+                    }
+                });
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                c.IncludeXmlComments(xmlPath);
+            });
+
             services.ConfigureApplicationCookie(options =>
             {
                 // Cookie settings
@@ -87,10 +113,18 @@ namespace WebApp
             services.AddScoped<IAppUnitOfWork, AppUnitOfWork>();
             services.AddScoped<IDataContext, ApplicationDbContext>();
             services.AddScoped<ITeamService, TeamService>();
-            services.AddScoped<IResultService, ResultService>();
+            services.AddScoped<IGameService, GameService>();
             services.AddScoped<ITeamFactory, TeamFactory>();
             services.AddScoped<ICourtFactory, CourtFactory>();
             services.AddScoped<IStandingFactory, StandingFactory>();
+            services.AddScoped<IGameFactory, GameFactory>();
+            services.AddScoped<IContactsFactory, ContactFactory>();
+            services.AddScoped<ICourtService, CourtService>();
+            services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<IUserFactory, UserFactory>();
+            services.AddScoped<IGameResultFactory, GameResultFactory>();
+
+
 
             //XML and JSON
             services.AddMvc(options => { options.RespectBrowserAcceptHeader = true; });
@@ -118,6 +152,16 @@ namespace WebApp
             {
                 app.UseExceptionHandler("/Home/Error");
             }
+
+            // Enable middleware to serve generated Swagger as a JSON endpoint.
+            app.UseSwagger();
+
+            // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.), 
+            // specifying the Swagger JSON endpoint.
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "BasketBall API v1");
+            });
 
             app.UseStaticFiles();
 

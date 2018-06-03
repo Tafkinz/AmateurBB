@@ -2,51 +2,87 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BL.DTO;
+using BL.Services;
 using DAL.App.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Model;
 
 namespace WebApp.Controllers.api
 {
     [Route("api/ContactTypes")]
+    [Authorize]
     public class ContactTypesController : Controller
     {
-        private readonly IAppUnitOfWork _uow;
+        private readonly IAccountService _accountService;
 
-        public ContactTypesController(IAppUnitOfWork uow)
+
+        public ContactTypesController(IAccountService accountService)
         {
-            _uow = uow;
+            _accountService = accountService;
         }
         // GET: api/ContactTypes
+        /// <summary>
+        /// Get all contact types as list
+        /// </summary>
         [HttpGet]
-        public IEnumerable<string> Get()
+        [ProducesResponseType(typeof(List<ContactTypeDTO>), 200)]
+        public IActionResult Get()
         {
-            return new string[] { "value1", "value2" };
+            return Ok(_accountService.GetAllContactTypes());
         }
 
         // GET: api/ContactTypes/5
+        /// <summary>
+        /// Get contact type by ID
+        /// </summary>
         [HttpGet("{id}", Name = "GetContactTypeById")]
-        public string Get(int id)
+        [ProducesResponseType(typeof(ContactTypeDTO), 200)]
+        [ProducesResponseType(404)]
+        public IActionResult Get(long id)
         {
-            return "value";
+            var result = _accountService.GetAllContactTypes().Single(p => p.ContactTypeId == id);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
-        
+
         // POST: api/ContactTypes
+        /// <summary>
+        /// Add a contact type with value
+        /// </summary>
         [HttpPost]
-        public void Post([FromBody]string value)
+        [ProducesResponseType(typeof(ContactTypeDTO), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [Authorize]
+        public IActionResult Post([FromBody]ContactTypeDTO value)
         {
+            if (!ModelState.IsValid) return BadRequest();
+            var type = _accountService.AddContactType(value);
+            return CreatedAtAction("Get", new {id = type.ContactTypeId}, type);
         }
-        
+
         // PUT: api/ContactTypes/5
+        /// <summary>
+        /// Update contact type by ID and new value
+        /// </summary>
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
+        [ProducesResponseType(typeof(ContactTypeDTO), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
+        [Authorize]
+        public IActionResult Put(long id, [FromBody]ContactTypeDTO value)
         {
+            var type = _accountService.UpdateContactType(id, value);
+            if (type == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(type);
         }
-        
-        // DELETE: api/ApiWithActions/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
+
     }
 }

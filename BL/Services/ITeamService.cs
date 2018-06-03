@@ -23,7 +23,6 @@ namespace BL.Services
 
         void PutPersonToTeam(long teamId, string userId, Boolean isManager);
 
-
         void RemovePersonFromTeam(long teamId, string userId);
     }
 }

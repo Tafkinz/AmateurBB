@@ -8,5 +8,6 @@ namespace DAL.App.Interfaces.Repositories
 {
     public interface IGameTypeRepository : IRepository<GameType>
     {
+        bool Exists(string gameTypeName);
     }
 }

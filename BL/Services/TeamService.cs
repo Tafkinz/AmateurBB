@@ -32,6 +32,9 @@ namespace BL.Services
             Team team = _teamFactory.Create(teamDto);
 
             team = _uow.Teams.Add(team);
+            CreateStandingsForTeam(team);
+
+            _uow.SaveChanges();
             return GetTeamById(team.TeamId);
         }
 
@@ -56,15 +59,18 @@ namespace BL.Services
             team.GameTeams.ForEach(p => games.Add(p.GameId));
             List<GameDTO> gameResults = new List<GameDTO>();
 
-            if (games.Count != 0)
+
+            foreach (long gameId in games)
             {
-                foreach (long gameId in games)
-                {
-                    gameResults.Add(GetGameResult(gameId));
-                }
+                gameResults.Add(GetGameResult(gameId));
             }
 
-            StandingDTO standing = _standingFactory.Create(team.Standing);
+            StandingDTO standing = null;
+            Standings standings = _uow.Standings.GetAll().Where(p => p.TeamId == teamId).Single();
+            if (standings != null)
+            {
+                standing = _standingFactory.Create(standings);
+            };
 
             TeamDTO teamDto = _teamFactory.Create(team, manager, gameResults, standing);
             return teamDto;
@@ -88,6 +94,7 @@ namespace BL.Services
             teamToUpdate.TeamName = team.TeamName;
 
             _uow.Teams.Update(teamToUpdate);
+            _uow.SaveChanges();
             return GetTeamById(teamToUpdate.TeamId);
         }
 
@@ -136,9 +143,12 @@ namespace BL.Services
                     TeamId = teamId,
                     ValidFrom = DateTime.Now
                 };
+                _uow.TeamPersons.Add(teamPerson);
+                return;
             }
 
             _uow.TeamPersons.Update(teamPerson);
+            _uow.SaveChanges();
         }
 
         public void RemovePersonFromTeam(long teamId, string userId)
@@ -148,6 +158,20 @@ namespace BL.Services
             teamPerson.ValidUntil = DateTime.Now;
 
             _uow.TeamPersons.Update(teamPerson);
+            _uow.SaveChanges();
+        }
+
+        private void CreateStandingsForTeam(Team team)
+        {
+            Standings standings = new Standings()
+            {
+                TeamId = team.TeamId,
+                GamesPlayed = 0,
+                Wins = 0,
+                Losses = 0,
+                Points = 0
+            };
+            _uow.Standings.Add(standings);
         }
 
         private GameDTO GetGameResult(long gameId)

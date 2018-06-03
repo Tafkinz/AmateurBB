@@ -8,5 +8,6 @@ namespace DAL.App.Interfaces.Repositories
 {
     public interface IGameTeamRepository : IRepository<GameTeam>
     {
+        List<GameTeam> GetGameTeamsByGameId(long gameId);
     }
 }

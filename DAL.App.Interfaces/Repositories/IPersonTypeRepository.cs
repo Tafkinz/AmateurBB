@@ -8,5 +8,6 @@ namespace DAL.App.Interfaces.Repositories
 {
     public interface IPersonTypeRepository : IRepository<PersonType>
     {
+        bool Exists(string personTypeName);
     }
 }

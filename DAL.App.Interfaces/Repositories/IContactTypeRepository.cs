@@ -8,5 +8,6 @@ namespace DAL.App.Interfaces.Repositories
 {
     public interface IContactTypeRepository : IRepository<ContactType>
     {
+        bool Exists(string contactTypeName);
     }
 }

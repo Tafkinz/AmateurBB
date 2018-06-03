@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BL.DTO;
 using BL.Services;
 using DAL.App.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,45 +14,79 @@ namespace WebApp.Controllers.api
     [Route("api/Game")]
     public class GameController : Controller
     {
-        private readonly IResultService _resultService;
+        private readonly IGameService _gameService;
 
-        public GameController(IResultService resultService)
+        public GameController(IGameService gameService)
         {
-            _resultService = resultService;
+            _gameService = gameService;
         }
         // GET: api/Game
+        /// <summary>
+        /// Get current standings with all teams
+        /// </summary>
         [HttpGet]
-        public IEnumerable<string> Get()
+        [ProducesResponseType(typeof(List<StandingDTO>), 200)]
+        public IActionResult GetStandings()
         {
-            return new string[] { "value1", "value2" };
+            return Ok(_gameService.GetAllStandings());
+        }
+
+        /// <summary>
+        /// Get standings for a single team by teamId
+        /// </summary>
+        [HttpGet("{teamId}", Name = "GetStandingsByTeamId")]
+        [ProducesResponseType(typeof(StandingDTO), 200)]
+        [ProducesResponseType(404)]
+        public IActionResult GetStandingsByTeam(long teamId)
+        {
+            return Ok(_gameService.GetStandingsByTeamId(teamId));
         }
 
         // GET: api/Game/5
+        /// <summary>
+        /// Get game by ID
+        /// </summary>
         [HttpGet("{id}", Name = "GetGameById")]
-        public string Get(int id)
+        [ProducesResponseType(typeof(GameDTO), 200)]
+        [ProducesResponseType(404)]
+        public IActionResult GetGameById(long id)
         {
-            return "value";
+            var result = _gameService.GetGameById(id);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
-        
+
         // POST: api/Game
+        /// <summary>
+        /// Post a new game with referees and teams
+        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody]GameDTO game)
+        [ProducesResponseType(typeof(GameDTO), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(400)]
+        [Authorize]
+        public async Task<IActionResult> CreateGame([FromBody]GameDTO game)
         {
             if (!ModelState.IsValid) return BadRequest();
-            var result = await _resultService.CreateGame(game);
-            return CreatedAtAction("Get", new { id = result.GameId }, result);
+            var result = await _gameService.CreateGame(game);
+            return CreatedAtAction("GetGameById", new { id = result.GameId }, result);
         }
-        
+
         // PUT: api/Game/5
+        /// <summary>
+        /// Update game with new values by ID
+        /// </summary>
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
+        [ProducesResponseType(typeof(List<GameDTO>), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        [Authorize]
+        public IActionResult Put(int id, [FromBody]GameDTO dto)
         {
+            var result = _gameService.UpdateGameById(id, dto);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
-        
-        // DELETE: api/ApiWithActions/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
+       
     }
 }

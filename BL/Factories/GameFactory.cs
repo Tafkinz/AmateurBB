@@ -20,7 +20,7 @@ namespace BL.Factories
             };
         }
 
-        public GameDTO Create(Game game, CourtDTO court, ApplicationUser referee, GameType gameType)
+        public GameDTO Create(Game game, CourtDTO court)
         {
             return new GameDTO()
             {
@@ -30,13 +30,30 @@ namespace BL.Factories
                 Court = court,
                 GameId = game.GameId,
                 GameTs = game.GameTs,
-                GameType = gameType,
+                GameType = game.GameType,
                 AwayTeamId = game.GameTeams[1].TeamId,
                 AwayTeamPoints = game.GameTeams[1].Points,
                 AwayTeamName = game.GameTeams[1].Team.FullTeamName,
-                Referee = referee.DisplayName,
-                RefereeId = referee.Id
+                Referee = game.Referee.DisplayName,
+                RefereeId = game.Referee.Id
+            };
+        }
 
+        public GameTypeDTO Create(GameType type)
+        {
+            return new GameTypeDTO()
+            {
+                GameTypeName = type.GameTypeName,
+                GameTypeId = type.GameTypeId
+            };
+        }
+
+        public GameType Create(GameTypeDTO dto)
+        {
+            return new GameType()
+            {
+                GameTypeName = dto.GameTypeName,
+                GameTypeId = dto.GameTypeId
             };
         }
     }
