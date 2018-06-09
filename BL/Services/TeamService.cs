@@ -33,20 +33,25 @@ namespace BL.Services
         }
         public TeamDTO AddTeam(TeamDTO teamDto)
         {
+            //Create team from DTO and add
             Team team = _teamFactory.Create(teamDto);
 
+            //Create standings with 0 values for team
             team = _uow.Teams.Add(team);
             CreateStandingsForTeam(team);
 
             _uow.SaveChanges();
+            //Save and return
             return GetTeamById(team.TeamId);
         }
 
         public TeamDTO GetTeamById(long teamId)
         {
+            //Find team
             var team = _uow.Teams.Find(teamId);
             if (team == null) return null;
             string manager;
+            //Try to get manager or just put no manager found when none
             try
             {
                 manager = team.TeamPersons.Where(p =>
@@ -59,6 +64,7 @@ namespace BL.Services
                 logger.LogTrace(e.StackTrace);
             }
 
+            //Find games for team and create DTOs
             List<long> games = new List<long>();
             team.GameTeams.ForEach(p => games.Add(p.GameId));
             List<GameDTO> gameResults = new List<GameDTO>();
@@ -69,6 +75,7 @@ namespace BL.Services
                 gameResults.Add(GetGameResult(gameId));
             }
 
+            //Get standings
             StandingDTO standing = null;
             Standings standings = _uow.Standings.GetAll().Where(p => p.TeamId == teamId).Single();
             if (standings != null)
@@ -76,12 +83,14 @@ namespace BL.Services
                 standing = _standingFactory.Create(standings);
             };
 
+            //Make DTO and return
             TeamDTO teamDto = _teamFactory.Create(team, manager, gameResults, standing);
             return teamDto;
         }
 
         public List<TeamDTO> GetAllTeams()
         {
+            //Find list of teams and get each team DTO from upper method
             List<long> teamIds = new List<long>();
             _uow.Teams.GetAll().ForEach(p => teamIds.Add(p.TeamId));
 
@@ -92,31 +101,30 @@ namespace BL.Services
 
         public TeamDTO UpdateTeam(long id, TeamDTO team)
         {
+            //Update team with specified values and return
             var teamToUpdate = _uow.Teams.Find(id);
             teamToUpdate.City = team.City;
             teamToUpdate.Logo = team.Logo;
             teamToUpdate.TeamName = team.TeamName;
 
             _uow.Teams.Update(teamToUpdate);
-            _uow.SaveChanges();
             return GetTeamById(teamToUpdate.TeamId);
         }
 
         public async Task<List<TeamPersonDTO>> GetAllTeamPersonsAsync(long teamId)
         {
+            //Find team related persons and create DTOs from each, then return
             var team = await _uow.Teams.GetAllAsync();
             List<TeamPerson> teamPersons = team.Where(p => p.TeamId == teamId).Single().TeamPersons.Where(p => p.ValidUntil > DateTime.Now).ToList();
             List<TeamPersonDTO> teamPersonsResult = new List<TeamPersonDTO>();
-            if (teamPersons.Count != 0)
-            {
-                teamPersons.ForEach(p => teamPersonsResult.Add(_teamFactory.CreateFromTeamPersons(p)));
-            }
+            teamPersons.ForEach(p => teamPersonsResult.Add(_teamFactory.CreateFromTeamPersons(p)));
 
             return teamPersonsResult;
         }
 
         public TeamPersonDTO GetTeamPersonById(long id)
         {
+            //Find team person and return, null if not found
             TeamPerson teamPerson = _uow.TeamPersons.Find(id);
             if (teamPerson == null) return null;
             return _teamFactory.CreateFromTeamPersons(teamPerson);
@@ -124,6 +132,7 @@ namespace BL.Services
 
         public void PutPersonToTeam(long teamId, string userId, bool isManager)
         {
+            
             var user = _uow.Users.Find(userId);
             var currentUserId = _auth.GetCurrentUserId();
             var currentUser = _uow.GetCustomRepository<IUserRepository>().FindById(currentUserId);

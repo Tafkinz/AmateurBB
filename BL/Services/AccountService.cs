@@ -30,6 +30,7 @@ namespace BL.Services
         }
         public ContactsDTO AddContact(ContactsDTO dto)
         {
+            //Add contact and return result
             var contact = _contactsFactory.Create(dto);
             var result = _uow.Contacts.Add(contact);
             result = _uow.GetCustomRepository<IContactRepository>().GetContact(result.ContactId);
@@ -39,9 +40,11 @@ namespace BL.Services
 
         public ContactsDTO UpdateContact(long id, ContactsDTO dto)
         {
+            //Find existing contact by id, if not found return null
             var contact = _uow.GetCustomRepository<IContactRepository>().GetContact(id);
             if (contact == null) return null;
 
+            //Update selected contact and return it
             contact.ContactValue = dto.Value;
             contact.ContactTypeId = dto.ContactTypeId;
 
@@ -52,6 +55,7 @@ namespace BL.Services
 
         public ContactsDTO RemoveContactById(long contactId)
         {
+            //Find contact to be removed and return null if not belonging to user or not found
             var contact = _uow.GetCustomRepository<IContactRepository>().GetContact(contactId);
             if (!_auth.IsCurrentUser(contact.ApplicationUserId))
             {
@@ -59,6 +63,7 @@ namespace BL.Services
             }
             if (contact == null) return null;
 
+            //Remove it and return removed contact
             _uow.Contacts.RemoveById(contactId);
             _uow.SaveChanges();
             return _contactsFactory.Create(contact);
@@ -66,6 +71,7 @@ namespace BL.Services
 
         public ContactsDTO GetContactById(long contactId)
         {
+            //Find and return, null if not found
             var contact = _uow.GetCustomRepository<IContactRepository>().GetContact(contactId);
 
             if (contact == null) return null;
@@ -75,6 +81,7 @@ namespace BL.Services
 
         public List<ContactsDTO> GetAllContactsForUser(string userId)
         {
+            //Get a list of contacts and iterate list to create DTO, then return
             var contacts = _uow.GetCustomRepository<IContactRepository>().GetByUserId(userId);
             List<ContactsDTO> contactsList = new List<ContactsDTO>();
             foreach (var contact in contacts)
@@ -87,20 +94,24 @@ namespace BL.Services
 
         public ContactTypeDTO AddContactType(ContactTypeDTO type)
         {
+            //Find out if such type exists already and return it if does
             if (_uow.GetCustomRepository<IContactTypeRepository>().Exists(type.ContactTypeName))
             {
                 return type;
             }
+            //Otherwise create new
             var result = _uow.ContactTypes.Add(new ContactType()
             {
                 ContactTypeName = type.ContactTypeName
             });
             _uow.SaveChanges();
+           
             return _contactsFactory.Create(result);
         }
 
         public List<ContactTypeDTO> GetAllContactTypes()
         {
+            //Get all contact types, iterate list to create DTOs and return
             List<ContactType> types = _uow.ContactTypes.GetAll();
             List<ContactTypeDTO> result = new List<ContactTypeDTO>();
             foreach (ContactType type in types)
@@ -112,6 +123,7 @@ namespace BL.Services
 
         public List<PersonTypeDTO> GetAllPersonTypes()
         {
+            //Get all person types, iterate to DTOs and return
             List<PersonType> types = _uow.PersonTypes.GetAll();
             List<PersonTypeDTO> result = new List<PersonTypeDTO>();
             foreach (PersonType type in types)
@@ -123,6 +135,7 @@ namespace BL.Services
 
         public PersonTypeDTO GetPersonTypeById(long id)
         {
+            //Find type or return null if not found
             var type = _uow.PersonTypes.Find(id);
             if (type == null) return null;
 
@@ -131,10 +144,12 @@ namespace BL.Services
 
         public PersonTypeDTO AddPersonType(PersonTypeDTO type)
         {
+            //Find if such type exists and return if does
             if (_uow.GetCustomRepository<IPersonTypeRepository>().Exists(type.PersonTypeName.ToString()))
             {
                 return type;
             }
+            //Otherwise create new
             var result = _uow.PersonTypes.Add(new PersonType()
             {
                 PersonTypeName = type.PersonTypeName
@@ -145,12 +160,15 @@ namespace BL.Services
 
         public PersonTypeDTO UpdatePersonType(long id, PersonTypeDTO type)
         {
+            //Find person type, if not found return null
+            //If exists, return it
             var personType = _uow.PersonTypes.Find(id);
             if (personType == null) return null;
             if (_uow.GetCustomRepository<IPersonTypeRepository>().Exists(type.PersonTypeName.ToString()))
             {
                 return type;
             }
+            //Otherwise update and return
             personType.PersonTypeName = type.PersonTypeName;
             var result = _uow.PersonTypes.Update(personType);
             return _userFactory.Create(result);
@@ -158,8 +176,10 @@ namespace BL.Services
 
         public ContactTypeDTO UpdateContactType(long id, ContactTypeDTO type)
         {
+            //Find contact type, null if not found
             var contactType = _uow.ContactTypes.Find(id);
             if (contactType == null) return null;
+            //Update and return it
             contactType.ContactTypeName = type.ContactTypeName;
             var result = _uow.ContactTypes.Update(contactType);
 
@@ -168,11 +188,13 @@ namespace BL.Services
 
         public ApplicationUser FindByEmailAsync(string email)
         {
+            //Find user by login
             return _uow.GetCustomRepository<IUserRepository>().FindByEmail(email);
         }
 
         public UserDTO GetCurrentUser()
         {
+            //Find current user by token
             var user = _uow.GetCustomRepository<IUserRepository>().FindById(AuthUtil._userId);
             if (user == null) return null;
 
