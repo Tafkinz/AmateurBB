@@ -24,22 +24,22 @@ namespace BL.Services
         private readonly ICourtFactory _courtFactory;
         private readonly IUserFactory _userFactory;
         private readonly IGameResultFactory _gameResultFactory;
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly AuthUtil _auth;
 
-        public GameService(IAppUnitOfWork uow, IStandingFactory factory, IGameFactory gameFactory, ICourtFactory courtFactory, IUserFactory userFactory, UserManager<ApplicationUser> manager, IGameResultFactory gameResultFactory)
+        public GameService(IAppUnitOfWork uow, IStandingFactory factory, IGameFactory gameFactory, ICourtFactory courtFactory, IUserFactory userFactory, AuthUtil auth, IGameResultFactory gameResultFactory)
         {
             _uow = uow;
             _standingFactory = factory;
             _gameFactory = gameFactory;
             _courtFactory = courtFactory;
             _userFactory = userFactory;
-            _userManager = manager;
+            _auth = auth;
             _gameResultFactory = gameResultFactory;
         }
 
         public async Task<List<StandingDTO>> GetAllStandingsAsync()
         {
-            List<Standings> standingsList = await _uow.Standings.GetAllAsync();
+            List<Standings> standingsList =  _uow.GetCustomRepository<IStandingsRepository>().GetAllStandings();
             List<StandingDTO> result = new List<StandingDTO>();
             standingsList.ForEach(p => result.Add(_standingFactory.Create(p)));
             return result;
@@ -47,7 +47,7 @@ namespace BL.Services
 
         public List<StandingDTO> GetAllStandings()
         {
-            List<Standings> standingsList = _uow.Standings.GetAll();
+            List<Standings> standingsList = _uow.GetCustomRepository<IStandingsRepository>().GetAllStandings();
             List<StandingDTO> result = new List<StandingDTO>();
             standingsList.ForEach(p => result.Add(_standingFactory.Create(p)));
             return result;
@@ -55,7 +55,7 @@ namespace BL.Services
 
         public StandingDTO GetStandingsByTeamId(long teamId)
         {
-            Standings standing = _uow.Standings.Find(teamId);
+            Standings standing = _uow.GetCustomRepository<IStandingsRepository>().GetByTeamId(teamId);
             return _standingFactory.Create(standing);
         }
 
@@ -84,16 +84,17 @@ namespace BL.Services
         {
             List<GameTeam> unapprovedGames = new List<GameTeam>();
             List<GameDTO> gameResults = new List<GameDTO>();
-            ApplicationUser user = await GetCurrentUser();
-            if (user.PersonType.PersonTypeName.Equals("TeamManager"))
+            string userId = _auth.GetCurrentUserId();
+            ApplicationUser user = _uow.GetCustomRepository<IUserRepository>().FindById(userId);
+            if (user.PersonType.PersonTypeName == Model.Enum.PersonTypes.Manager)
             {
                 Team team = _uow.TeamPersons.GetAll().Single(p => p.ApplicationUserId == user.Id).Team;
                 if (team == null) return null;
                 unapprovedGames = _uow.GameTeams.GetAll().Where(p => p.TeamId == team.TeamId).Where(p => p.ResultConfirmed != true).ToList();
             }
-            else if (user.PersonType.PersonTypeName.Equals("Referee"))
+            else if (user.PersonType.PersonTypeName == Model.Enum.PersonTypes.Referee)
             {
-                List<Game> refGames = _uow.Games.GetAll().Where(p => p.ApplicationUserId == user.Id && p.RefereeConfirmed != true && p.ConfirmedTs == null).ToList();
+                List<Game> refGames = _uow.GetCustomRepository<IGameRepository>().GetAllGames().Where(p => p.ApplicationUserId == user.Id && p.RefereeConfirmed != true && p.ConfirmedTs == null).ToList();
                 refGames.ForEach(p => unapprovedGames.Add(p.GameTeams[0]));
             }
             else
@@ -114,10 +115,14 @@ namespace BL.Services
 
         public async Task<GameDTO> AcceptGame(long id, GameAcceptDTO gameAccept)
         {
-            ApplicationUser user = await GetCurrentUser();
+            string userId = _auth.GetCurrentUserId();
+            ApplicationUser user = _uow.GetCustomRepository<IUserRepository>().FindById(userId);
 
             Game game = _uow.GetCustomRepository<IGameRepository>().GetGameById(id);
-            if (game == null) throw new EntryPointNotFoundException();
+            if (game == null) return null;
+            if (!game.GameTeams.Any(p => _uow.GetCustomRepository<ITeamRepository>().Find(p.TeamId).TeamPersons.Any(a => a.ApplicationUserId == user.Id))) {
+                return null;
+            }
 
             var gameTeams = _uow.GetCustomRepository<IGameTeamRepository>().GetGameTeamsByGameId(id);
 
@@ -199,11 +204,6 @@ namespace BL.Services
             };
         }
 
-        private async Task<ApplicationUser> GetCurrentUser()
-        {
-            return await _userManager.GetUserAsync(ClaimsPrincipal.Current);
-        }
-
         private void AcceptGameAndChangeStandings(Game result)
         {
             result.ConfirmedTs = DateTime.Now;
@@ -215,6 +215,11 @@ namespace BL.Services
             Boolean teamWon = team.Points > opponent.Points;
             UpdateGameTeam(team);
             UpdateGameTeam(opponent);
+
+            if (result.GameType.GameTypeName == "Friendly")
+            {
+                return;
+            }
 
             Standings homeTeamStandings = _uow.Standings.GetAll().Single(p => p.TeamId == team.TeamId);
             ModifyStandingsByResult(homeTeamStandings, teamWon);

@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using BL.DTO;
 using BL.Services;
+using BL.Util;
 using DAL.App.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -13,15 +15,15 @@ using Model;
 namespace WebApp.Controllers.api
 {
     [Route("api/ContactTypes")]
-    [Authorize]
     public class ContactTypesController : Controller
     {
         private readonly IAccountService _accountService;
+        private readonly AuthUtil _auth;
 
-
-        public ContactTypesController(IAccountService accountService)
+        public ContactTypesController(IAccountService accountService, AuthUtil auth)
         {
             _accountService = accountService;
+            _auth = auth;
         }
         // GET: api/ContactTypes
         /// <summary>
@@ -56,9 +58,14 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(ContactTypeDTO), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [ProducesResponseType(403)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult Post([FromBody]ContactTypeDTO value)
         {
+            if (!_auth.IsAdmin())
+            {
+                return Forbid();
+            }
             if (!ModelState.IsValid) return BadRequest();
             var type = _accountService.AddContactType(value);
             return CreatedAtAction("Get", new {id = type.ContactTypeId}, type);
@@ -72,9 +79,14 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(ContactTypeDTO), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [ProducesResponseType(403)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult Put(long id, [FromBody]ContactTypeDTO value)
         {
+            if (!_auth.IsAdmin())
+            {
+                return Forbid();
+            }
             var type = _accountService.UpdateContactType(id, value);
             if (type == null)
             {

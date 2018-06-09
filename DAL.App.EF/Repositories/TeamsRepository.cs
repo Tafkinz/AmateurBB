@@ -24,10 +24,9 @@ namespace DAL.App.EF.Repositories
                 .ToList();
         }
 
-        public Team Find(params object[] keyValues)
-        {
+        public Team FindById(long id) {
             return RepositoryDbSet.Include(p => p.GameTeams).Include(p => p.TeamPersons)
-                .FirstOrDefault(p => p.TeamId == (long)keyValues[0]);
+                .FirstOrDefault(p => p.TeamId == id);
         }
     }
 }

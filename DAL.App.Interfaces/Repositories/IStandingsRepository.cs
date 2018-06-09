@@ -8,5 +8,8 @@ namespace DAL.App.Interfaces.Repositories
 {
     public interface IStandingsRepository : IRepository<Standings>
     {
+        List<Standings> GetAllStandings();
+
+        Standings GetByTeamId(long teamId);
     }
 }

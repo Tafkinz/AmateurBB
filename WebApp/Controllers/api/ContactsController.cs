@@ -8,26 +8,33 @@ using DAL.App.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNet.Identity;
+using Microsoft.AspNetCore.Identity;
+using BL.Util;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Model;
 
 namespace WebApp.Controllers.api
 {
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/Contacts")]
     public class ContactsController : Controller
     {
 
         private readonly IAccountService _accountService;
+        private readonly AuthUtil _auth;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ContactsController(IAccountService accountService)
+        public ContactsController(IAccountService accountService, AuthUtil auth, UserManager<ApplicationUser> userManager)
         {
             _accountService = accountService;
+            _auth = auth;
+            _userManager = userManager;
         }
 
         /// <summary>
         /// Get a contact by ID
         /// </summary>
         // GET: api/Contacts/5
-        [Authorize]
         [HttpGet("{id}", Name = "GetContactById")]
         [ProducesResponseType(typeof(List<ContactsDTO>), 200)]
         [ProducesResponseType(401)]
@@ -41,8 +48,7 @@ namespace WebApp.Controllers.api
         /// <summary>
         /// Get All Contacts for user by userId
         /// </summary>
-        [Authorize]
-        [HttpGet("{userId}", Name = "GetAllUserContacts")]
+        [HttpGet("user/{userId}", Name = "GetAllUserContacts")]
         [ProducesResponseType(typeof(List<ContactsDTO>), 200)]
         [ProducesResponseType(401)]
         public IActionResult GetAllUserContacts(string userId)
@@ -55,7 +61,6 @@ namespace WebApp.Controllers.api
         /// Add a contact to use with userId and ContactTypeId
         /// </summary>
         // POST: api/Contacts
-        [Authorize]
         [HttpPost]
         [ProducesResponseType(typeof(ContactsDTO), 201)]
         [ProducesResponseType(400)]
@@ -63,7 +68,8 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(403)]
         public IActionResult Post([FromBody]ContactsDTO dto)
         {
-            if (dto.UserId != User.Identity.GetUserId())
+            _userManager.GetUserAsync(HttpContext.User);
+            if (!_auth.IsCurrentUser(dto.UserId))
             {
                 return Forbid();
             }
@@ -76,7 +82,6 @@ namespace WebApp.Controllers.api
         /// <summary>
         /// Update a contact by ID and new value
         /// </summary>
-        [Authorize]
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(ContactsDTO), 200)]
         [ProducesResponseType(404)]
@@ -84,7 +89,7 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(403)]
         public IActionResult Put(long id, [FromBody]ContactsDTO dto)
         {
-            if (dto.UserId != User.Identity.GetUserId())
+            if (!_auth.IsCurrentUser(dto.UserId))
             {
                 return Forbid();
             }
@@ -98,7 +103,6 @@ namespace WebApp.Controllers.api
         /// <summary>
         /// Remove a contact by ID
         /// </summary>
-        [Authorize]
         [HttpDelete("{id}")]
         [ProducesResponseType(typeof(ContactsDTO), 200)]
         [ProducesResponseType(401)]

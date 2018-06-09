@@ -17,6 +17,16 @@ namespace DAL.App.EF.Repositories
             _dbContext = dbContext;
         }
 
+        public List<Game> GetAllGames()
+        {
+            return RepositoryDbSet
+                .Include(p => p.Court)
+                .Include(p => p.GameTeams)
+                .Include(p => p.Referee)
+                .Include(p => p.GameType)
+                .ToList();
+        }
+
         public Game GetGameById(long id)
         {
             return RepositoryDbSet

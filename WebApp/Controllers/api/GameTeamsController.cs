@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using BL.DTO;
 using BL.Services;
+using BL.Util;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +16,12 @@ namespace WebApp.Controllers.api
     public class GameTeamsController : Controller
     {
         private readonly IGameService _gameService;
+        private readonly AuthUtil _auth;
 
-        public GameTeamsController(IGameService gameService)
+        public GameTeamsController(IGameService gameService, AuthUtil auth)
         {
             _gameService = gameService;
+            _auth = auth;
         }
         // GET: api/GameTeams
         /// <summary>
@@ -26,7 +30,7 @@ namespace WebApp.Controllers.api
         [HttpGet]
         [ProducesResponseType(typeof(List<GameActionDto>), 200)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetUserPendingResults()
         {
             return Ok(await _gameService.GetUserPendingResults());
@@ -40,7 +44,7 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(GameDTO), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> Put(long id, [FromBody]GameAcceptDTO accept)
         {
             var result = await _gameService.AcceptGame(id, accept);

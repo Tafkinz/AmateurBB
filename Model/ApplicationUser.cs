@@ -30,6 +30,7 @@ namespace Model
 
         public string DisplayName => $"{FirstName} {LastName}";
 
-        public List<TeamPerson> TeamPersons = new List<TeamPerson>();
+        public List<TeamPerson> TeamPersons { get; set; } = new List<TeamPerson>();
+
     }
 }

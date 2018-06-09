@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using BL.DTO;
 using Model;
 
@@ -30,5 +31,9 @@ namespace BL.Services
         PersonTypeDTO UpdatePersonType(long id, PersonTypeDTO type);
 
         ContactTypeDTO UpdateContactType(long id, ContactTypeDTO name);
+
+        ApplicationUser FindByEmailAsync(string email);
+
+        UserDTO GetCurrentUser();
     }
 }

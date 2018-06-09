@@ -25,6 +25,10 @@ using WebApp.Services;
 using Swashbuckle.AspNetCore.Swagger;
 using System.Reflection;
 using System.IO;
+using BL.Util;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using WebApp.Filter;
 
 namespace WebApp
 {
@@ -44,11 +48,29 @@ namespace WebApp
             {
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("WebApp"));
             });
-        
+
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
+
+            //JWT security
+            services.AddAuthentication()
+                .AddCookie(options => { options.SlidingExpiration = true; })
+                .AddJwtBearer(options =>
+                    {
+                        options.SaveToken = true;
+                        options.RequireHttpsMetadata = false;
+
+                        options.TokenValidationParameters = new TokenValidationParameters()
+                        {
+                            ValidIssuer = Configuration["Token:Issuer"],
+                            ValidAudience = Configuration["Token:Issuer"],
+                            IssuerSigningKey = new SymmetricSecurityKey(
+                                Encoding.UTF8.GetBytes(Configuration["Token:Key"])
+                                )
+                        };
+                    });
 
             services.Configure<IdentityOptions>(options =>
             {
@@ -80,12 +102,20 @@ namespace WebApp
                     Contact = new Swashbuckle.AspNetCore.Swagger.Contact
                     {
                         Name = "Taavi Kivimaa",
-                        Email = "taavi.kivimaa@snowhound.eu"                    },
+                        Email = "taavi.kivimaa@snowhound.eu"
+                    },
                     License = new License
                     {
                         Name = "Use as you wish",
                         Url = "https://www.neti.ee"
                     }
+                });
+                c.AddSecurityDefinition("Bearer", new ApiKeyScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Name = "Authorization",
+                    In = "header",
+                    Type = "apiKey"
                 });
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -108,6 +138,7 @@ namespace WebApp
 
             // Add application services.
             services.AddTransient<IEmailSender, EmailSender>();
+            services.AddTransient<UserManager<ApplicationUser>, UserManager<ApplicationUser>>();
             services.AddSingleton<IRepositoryFactoryProvider, EFRepositoryFactoryProvider>();
             services.AddScoped<IRepositoryProvider, EFRepositoryProvider>();
             services.AddScoped<IAppUnitOfWork, AppUnitOfWork>();
@@ -123,19 +154,26 @@ namespace WebApp
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<IUserFactory, UserFactory>();
             services.AddScoped<IGameResultFactory, GameResultFactory>();
-
-
+            services.AddScoped<AuthUtil>();
 
             //XML and JSON
             services.AddMvc(options => { options.RespectBrowserAcceptHeader = true; });
             services.AddMvc().AddXmlSerializerFormatters();
             services.AddMvc().AddJsonOptions(options =>
+                        {
+                            options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Serialize;
+                            options.SerializerSettings.PreserveReferencesHandling = PreserveReferencesHandling.Objects;
+                            options.SerializerSettings.Formatting = Formatting.Indented;
+                        });
+
+            //To make api calls from frontend
+            services.AddCors();
+            //Intercepting controller filter
+            services.AddMvc(options =>
             {
-                options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Serialize;
-                options.SerializerSettings.PreserveReferencesHandling = PreserveReferencesHandling.Objects;
-                options.SerializerSettings.Formatting = Formatting.Indented;
+                options.Filters.Add<ControllerSecurityFilter>();
             });
-        
+
             services.AddMvc();
         }
 
@@ -164,6 +202,11 @@ namespace WebApp
             });
 
             app.UseStaticFiles();
+            app.UseCors(x => x
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials());
 
             app.UseAuthentication();
 

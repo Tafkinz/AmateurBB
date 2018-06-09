@@ -6,7 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using BL.DTO;
 using BL.Factories;
+using BL.Util;
 using DAL.App.Interfaces;
+using DAL.App.Interfaces.Repositories;
 using Microsoft.Extensions.Logging;
 using Model;
 
@@ -19,13 +21,15 @@ namespace BL.Services
         private readonly ITeamFactory _teamFactory;
         private readonly ICourtFactory _courtFactory;
         private readonly IStandingFactory _standingFactory;
+        private readonly AuthUtil _auth;
 
-        public TeamService(IAppUnitOfWork uow, ITeamFactory factory, ICourtFactory courtFactory, IStandingFactory standingFactory)
+        public TeamService(IAppUnitOfWork uow, ITeamFactory factory, ICourtFactory courtFactory, IStandingFactory standingFactory, AuthUtil auth)
         {
             _uow = uow;
             _teamFactory = factory;
             _courtFactory = courtFactory;
             _standingFactory = standingFactory;
+            _auth = auth;
         }
         public TeamDTO AddTeam(TeamDTO teamDto)
         {
@@ -121,14 +125,22 @@ namespace BL.Services
         public void PutPersonToTeam(long teamId, string userId, bool isManager)
         {
             var user = _uow.Users.Find(userId);
+            var currentUserId = _auth.GetCurrentUserId();
+            var currentUser = _uow.GetCustomRepository<IUserRepository>().FindById(currentUserId);
+
+            var team = _uow.GetCustomRepository<ITeamRepository>().FindById(teamId);
+            if (!team.TeamPersons.Any(p => p.ApplicationUserId == currentUserId))
+            {
+                throw new Exception("User is not manager of team " + team.FullTeamName);
+            }
             if (isManager)
             {
-                long personTypeId = _uow.PersonTypes.GetAll().Where(p => p.PersonTypeName == "manager").Single().PersonTypeId;
+                long personTypeId = _uow.PersonTypes.GetAll().Where(p => p.PersonTypeName == Model.Enum.PersonTypes.Manager).Single().PersonTypeId;
                 user.PersonTypeId = personTypeId;
             }
             else
             {
-                long personTypeId = _uow.PersonTypes.GetAll().Where(p => p.PersonTypeName == "player").Single().PersonTypeId;
+                long personTypeId = _uow.PersonTypes.GetAll().Where(p => p.PersonTypeName == Model.Enum.PersonTypes.Player).Single().PersonTypeId;
                 user.PersonTypeId = personTypeId;
             }
 

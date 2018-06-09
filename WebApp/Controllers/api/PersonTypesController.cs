@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using BL.DTO;
 using BL.Services;
+using BL.Util;
 using DAL.App.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,10 +18,12 @@ namespace WebApp.Controllers.api
     public class PersonTypesController : Controller
     {
         private readonly IAccountService _accountService;
+        private readonly AuthUtil _auth;
 
-        public PersonTypesController(IAccountService accountService)
+        public PersonTypesController(IAccountService accountService, AuthUtil auth)
         {
             _accountService = accountService;
+            _auth = auth;
         }
         // GET: api/PersonTypes
         /// <summary>
@@ -55,9 +59,14 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(PersonTypeDTO), 201)]
         [ProducesResponseType(401)]
         [ProducesResponseType(403)]
-        [Authorize]
+        [ProducesResponseType(403)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult Post([FromBody]PersonTypeDTO personType)
         {
+            if (!_auth.IsAdmin())
+            {
+                return Forbid();
+            }
             if (!ModelState.IsValid) return BadRequest();
 
             var result = _accountService.AddPersonType(personType);
@@ -72,9 +81,14 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(PersonTypeDTO), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [ProducesResponseType(403)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult Put(long id, [FromBody]PersonTypeDTO value)
         {
+            if (!_auth.IsAdmin())
+            {
+                return Forbid();
+            }
             var result = _accountService.UpdatePersonType(id, value);
             if (result == null) return NotFound();
 

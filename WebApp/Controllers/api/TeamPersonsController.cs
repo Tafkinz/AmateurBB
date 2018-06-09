@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using BL.DTO;
 using BL.Services;
+using BL.Util;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,10 +17,12 @@ namespace WebApp.Controllers.api
     public class TeamPersonsController : Controller
     {
         private readonly ITeamService _teamService;
+        private readonly AuthUtil _auth;
 
-        public TeamPersonsController(ITeamService teamService)
+        public TeamPersonsController(ITeamService teamService, AuthUtil auth)
         {
             _teamService = teamService;
+            _auth = auth;
         }
         // GET: api/TeamPersons/teams/5
         /// <summary>
@@ -27,7 +31,7 @@ namespace WebApp.Controllers.api
         [HttpGet("/teams/{teamId}", Name ="GetTeamPersonByTeamId")]
         [ProducesResponseType(typeof(List<TeamPersonDTO>), 200)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetAllByTeamAsync(long teamId)
         {
             return Ok( await _teamService.GetAllTeamPersonsAsync(teamId));
@@ -41,7 +45,7 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(TeamPerson), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult Get(long id)
         {
             var result = _teamService.GetTeamPersonById(id);
@@ -57,9 +61,14 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(TeamPersonDTO), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [ProducesResponseType(403)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult Put(long teamId, string userId, [FromBody]Boolean manager)
         {
+            if (!_auth.IsAdmin() && !_auth.IsManager())
+            {
+                return Forbid();
+            }
             _teamService.PutPersonToTeam(teamId, userId, manager);
             return Ok();
         }
@@ -72,9 +81,14 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(TeamPersonDTO), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [ProducesResponseType(403)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult RemovePersonFromTeam(long teamId, string personId)
         {
+            if (!_auth.IsAdmin() && !_auth.IsManager())
+            {
+                return Forbid();
+            }
             _teamService.RemovePersonFromTeam(teamId, personId);
             return Ok();
         }

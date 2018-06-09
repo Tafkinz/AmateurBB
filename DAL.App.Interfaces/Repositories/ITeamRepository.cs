@@ -11,6 +11,6 @@ namespace DAL.App.Interfaces.Repositories
     {
         List<Team> GetAll();
 
-        Team Find(params object[] keyValues);
+        Team FindById(long id);
     }
 }

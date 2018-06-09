@@ -17,7 +17,7 @@ namespace DAL.App.EF.Repositories
 
         public bool Exists(string personTypeName)
         {
-            return RepositoryDbSet.Any(p => p.PersonTypeName == personTypeName);
+            return RepositoryDbSet.Any(p => p.PersonTypeName.ToString() == personTypeName);
         }
     }
 }

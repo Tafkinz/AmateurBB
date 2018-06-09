@@ -9,5 +9,7 @@ namespace DAL.App.Interfaces.Repositories
     public interface IGameRepository : IRepository<Game>
     {
         Game GetGameById(long id);
+
+        List<Game> GetAllGames();
     }
 }

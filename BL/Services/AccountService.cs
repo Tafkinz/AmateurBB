@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using BL.DTO;
 using BL.Factories;
+using BL.Util;
 using DAL.App.Interfaces;
 using DAL.App.Interfaces.Repositories;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Model;
 
@@ -16,36 +19,44 @@ namespace BL.Services
         private readonly IAppUnitOfWork _uow;
         private readonly IContactsFactory _contactsFactory;
         private readonly IUserFactory _userFactory;
+        private readonly AuthUtil _auth;
 
-        public AccountService(IAppUnitOfWork uow, IContactsFactory contactsFactory, IUserFactory userFactory)
+        public AccountService(IAppUnitOfWork uow, IContactsFactory contactsFactory, IUserFactory userFactory, AuthUtil auth)
         {
             _uow = uow;
             _contactsFactory = contactsFactory;
             _userFactory = userFactory;
+            _auth = auth;
         }
         public ContactsDTO AddContact(ContactsDTO dto)
         {
             var contact = _contactsFactory.Create(dto);
             var result = _uow.Contacts.Add(contact);
+            result = _uow.GetCustomRepository<IContactRepository>().GetContact(result.ContactId);
             _uow.SaveChanges();
             return _contactsFactory.Create(result);
         }
 
         public ContactsDTO UpdateContact(long id, ContactsDTO dto)
         {
-            var contact = _uow.Contacts.Find(id);
+            var contact = _uow.GetCustomRepository<IContactRepository>().GetContact(id);
             if (contact == null) return null;
 
             contact.ContactValue = dto.Value;
+            contact.ContactTypeId = dto.ContactTypeId;
 
-            var result = _uow.Contacts.Update(contact);
-            _uow.SaveChanges();
-            return _contactsFactory.Create(result);
+            _uow.Contacts.Update(contact);
+
+            return _contactsFactory.Create(contact);
         }
 
         public ContactsDTO RemoveContactById(long contactId)
         {
-            var contact = _uow.Contacts.Find(contactId);
+            var contact = _uow.GetCustomRepository<IContactRepository>().GetContact(contactId);
+            if (!_auth.IsCurrentUser(contact.ApplicationUserId))
+            {
+                return null;
+            }
             if (contact == null) return null;
 
             _uow.Contacts.RemoveById(contactId);
@@ -55,7 +66,8 @@ namespace BL.Services
 
         public ContactsDTO GetContactById(long contactId)
         {
-            var contact = _uow.Contacts.Find(contactId);
+            var contact = _uow.GetCustomRepository<IContactRepository>().GetContact(contactId);
+
             if (contact == null) return null;
 
             return _contactsFactory.Create(contact);
@@ -63,7 +75,7 @@ namespace BL.Services
 
         public List<ContactsDTO> GetAllContactsForUser(string userId)
         {
-            var contacts = _uow.Contacts.GetAll().Where(p => p.ApplicationUser.Id == userId).ToList();
+            var contacts = _uow.GetCustomRepository<IContactRepository>().GetByUserId(userId);
             List<ContactsDTO> contactsList = new List<ContactsDTO>();
             foreach (var contact in contacts)
             {
@@ -119,7 +131,7 @@ namespace BL.Services
 
         public PersonTypeDTO AddPersonType(PersonTypeDTO type)
         {
-            if (_uow.GetCustomRepository<IPersonTypeRepository>().Exists(type.PersonTypeName))
+            if (_uow.GetCustomRepository<IPersonTypeRepository>().Exists(type.PersonTypeName.ToString()))
             {
                 return type;
             }
@@ -135,13 +147,12 @@ namespace BL.Services
         {
             var personType = _uow.PersonTypes.Find(id);
             if (personType == null) return null;
-            if (_uow.GetCustomRepository<IPersonTypeRepository>().Exists(type.PersonTypeName))
+            if (_uow.GetCustomRepository<IPersonTypeRepository>().Exists(type.PersonTypeName.ToString()))
             {
                 return type;
             }
             personType.PersonTypeName = type.PersonTypeName;
             var result = _uow.PersonTypes.Update(personType);
-            _uow.SaveChanges();
             return _userFactory.Create(result);
         }
 
@@ -151,8 +162,22 @@ namespace BL.Services
             if (contactType == null) return null;
             contactType.ContactTypeName = type.ContactTypeName;
             var result = _uow.ContactTypes.Update(contactType);
-            _uow.SaveChanges();
+
             return _contactsFactory.Create(result);
+        }
+
+        public ApplicationUser FindByEmailAsync(string email)
+        {
+            return _uow.GetCustomRepository<IUserRepository>().FindByEmail(email);
+        }
+
+        public UserDTO GetCurrentUser()
+        {
+            var user = _uow.GetCustomRepository<IUserRepository>().FindById(AuthUtil._userId);
+            if (user == null) return null;
+
+            user.Contacts = _uow.GetCustomRepository<IContactRepository>().GetByUserId(user.Id);
+            return _userFactory.Create(user);
         }
     }
 }

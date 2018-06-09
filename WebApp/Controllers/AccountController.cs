@@ -229,7 +229,8 @@ namespace WebApp.Controllers
             if (ModelState.IsValid)
             {
                 var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FirstName = model.FirstName, LastName = model.LastName};
-                user.PersonType = await _context.PersonTypes.FirstAsync(c => c.PersonTypeName == "Player");
+                var personType = _context.PersonTypes.FirstOrDefault(c => c.PersonTypeName == Model.Enum.PersonTypes.Player);
+                user.PersonTypeId = personType.PersonTypeId;
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using BL.DTO;
 using BL.Services;
+using BL.Util;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,10 +17,12 @@ namespace WebApp.Controllers.api
     public class GameTypesController : Controller
     {
         private readonly IGameService _gameService;
+        private readonly AuthUtil _auth;
 
-        public GameTypesController(IGameService gameService)
+        public GameTypesController(IGameService gameService, AuthUtil auth)
         {
             _gameService = gameService;
+            _auth = auth;
         }
         // GET: api/GameTypes
         /// <summary>
@@ -52,9 +56,14 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(GameTypeDTO), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [ProducesResponseType(403)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult Post([FromBody]GameTypeDTO value)
         {
+            if (!_auth.IsAdmin())
+            {
+                return Forbid();
+            }
             if (!ModelState.IsValid) return BadRequest();
 
             var result =_gameService.AddGameType(value);
@@ -69,9 +78,14 @@ namespace WebApp.Controllers.api
         [ProducesResponseType(typeof(GameTypeDTO), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
-        [Authorize]
+        [ProducesResponseType(403)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public IActionResult Put(long id, [FromBody]GameTypeDTO value)
         {
+            if (!_auth.IsAdmin())
+            {
+                return Forbid();
+            }
             var result = _gameService.UpdateGameTypeById(id, value);
             if (result == null) return NotFound();
 
